@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Indovina le province italiane</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"/> <!-- load bootstrap -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+            integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+            crossorigin=""/> <!-- load leaflet css -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script> <!-- load leaflet js -->
+        <script src = "https://code.jquery.com/jquery-2.2.4.min.js"></script> <!-- load jquery -->
+        <script src="resources/leaflet.ajax.js"></script> <!-- load leaflet.ajax -->
+        <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script> <!-- Turf.js -->
+        <style>
+            #header {
+                height: 75px;
+                background-color: whitesmoke;
+            }
+            #title {
+                font-weight: bold;
+            }
+            #side_panel {
+                height: 850px;
+                background-color: whitesmoke;
+            }
+            #mapdiv {
+                height: 850px;
+                background-color: whitesmoke;
+            }
+            #btnConfirm {
+                margin-bottom: 30px;
+                width: 400px;
+                font-weight: bold;
+            }
+            #sidepanel {
+                height: 500px;
+            }
+            #answer {
+                background-color: white;
+                font-weight: bold;
+            }
+            #start {
+                background-color: lightgreen;
+                border-color: black;
+                color: black;
+                font-weight: bold;
+            }
+            #risposta_corretta {
+                font-weight: bold;
+            }
+            #query {
+                font-weight: bold;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="header" class="col-md-12">
+            <h1 id = title class="text-center">Indovina la provincia</h1>
+        </div>
+        <div id="mapdiv" class="col-md-8"></div>
+        <div id="side_panel" class="col-md-4">
+            <button id="start" class="confirm form-control btn-primary">Nuova domanda</button><br><br>
+            <h4 id = "query" class="text-left" width = "400">Scrivi il nome della provincia</h4>
+            <input type="text" id="answer" width="400"><br><br>
+            <h4 id= "risposta_corretta" class="text-left" width = "400">La tua risposta è...</h4><br><br>
+            <button id="btnConfirm" class="confirm form-control btn-primary">Conferma</button><br><br>
+            <input id="switchRegioni" name="switchRegioni" type="checkbox" value="off">
+            <label for="switchRegioni"> Mostra confini regionali</label><br>
+        </div>
+    </body>
+    <script>
+        var mymap = L.map('mapdiv');
+        document.getElementById('answer').value = '';
+        provinces = [];
+        mymap.setView([41, 14], 6);
+        var province = new L.GeoJSON.AJAX('data/provinceSemplificato.geojson', {
+            onEachFeature: function (feature, layer) {
+                layer.setStyle({
+                    fillColor: "white",
+                    weight: 1,
+                    opacity: 1,
+                    color: 'black',
+                    fillOpacity: 0.3
+                });
+                provinces.push([feature.properties.fid, feature.properties.nome, [feature.properties.lat, feature.properties.lon]]);
+            }
+        }).addTo(mymap);
+
+        var regioni = new L.GeoJSON.AJAX('data/regioni.geojson', {
+            onEachFeature: function(feature,layer) {
+                layer.setStyle({
+                    fillOpacity: 0,
+                    color: 'black',
+                    weight: 5
+                })
+            }
+        });
+
+        document.querySelector('#switchRegioni').addEventListener('change', function(){
+            console.log('event fired');
+            if (document.querySelector('#switchRegioni').checked) {
+                console.log(document.querySelector('#switchRegioni').checked);
+                regioni.addTo(mymap);
+                province.setStyle({
+                    color: 'grey'
+                })
+            } else {
+                console.log(document.querySelector('#switchRegioni').checked);
+                mymap.removeLayer(regioni);
+                province.setStyle({
+                    color:'black'
+                })
+            }
+        });
+
+        $("#start").on("click", function(){
+            document.getElementById('answer').value = '';
+            document.getElementById('risposta_corretta').innerHTML = 'La tua risposta è...';
+            document.getElementById('answer').style.backgroundColor = "white";
+            document.getElementById("answer").focus();
+            let idProvinciaInArray = Math.floor(Math.random()*107);
+            let centroide = provinces[idProvinciaInArray][2];
+            let idProvincia = provinces[idProvinciaInArray][0];
+            let nomeProvincia = provinces[idProvinciaInArray][1];
+
+            mymap.setView(centroide, 8);
+
+            function style(feature){
+                if (feature.properties.fid === idProvincia){
+                    return {
+                        fillColor: 'lightgreen',
+                        weight: 5,
+                        fillOpacity: 1
+                    };
+                } else {
+                    return {
+                        fillColor: 'white',
+                        weight: 3
+                        }
+                    };
+                };
+
+            province.setStyle(style);
+
+            $("#btnConfirm").on("click", function(){
+                let answer = document.getElementById('answer').value;
+                if (answer.toLowerCase() === nomeProvincia.toLowerCase()){
+                    document.getElementById('answer').style.backgroundColor = "lightgreen";
+                    document.getElementById('risposta_corretta').innerHTML = 'Risposta corretta!';
+                } else {
+                    document.getElementById('answer').style.backgroundColor = "red";
+                    document.getElementById('risposta_corretta').innerHTML = 'Risposta errata! La risposta corretta è ' + nomeProvincia;
+                }
+            });
+
+            $("#answer").on('keydown', function(){
+                if (event.key === 'Enter') {
+                    event.preventDefault;
+                    document.getElementById('btnConfirm').click();
+                    document.getElementById('answer').blur();
+                }
+            })
+        })
+</script>
