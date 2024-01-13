@@ -48,10 +48,10 @@
                 color: black;
                 font-weight: bold;
             }
-            #risposta_corretta {
+            #query {
                 font-weight: bold;
             }
-            #query {
+            #rispostaCorretta {
                 font-weight: bold;
             }
         </style>
@@ -60,12 +60,13 @@
         <div id="header" class="col-md-12">
             <h1 id = title class="text-center">Indovina la provincia</h1>
         </div>
-        <div id="mapdiv" class="col-md-8"></div>
+        <div id="barraRisposta" class="col-md-12">
+            <h4 id="rispostaCorretta" class="text-center">La tua risposta è...</h4>
+        </div>
+        <div id="mapdiv" class="col-md-12"></div>
         <div id="side_panel" class="col-md-4">
             <button id="start" class="confirm form-control btn-primary">Nuova domanda</button><br><br>
             <h4 id = "query" class="text-left" width = "400">Scrivi il nome della provincia</h4>
-            <input type="text" id="answer" width="400"><br><br>
-            <h4 id= "risposta_corretta" class="text-left" width = "400">La tua risposta è...</h4><br><br>
             <button id="btnConfirm" class="confirm form-control btn-primary">Conferma</button><br><br>
             <input id="switchRegioni" name="switchRegioni" type="checkbox" value="off">
             <label for="switchRegioni"> Mostra confini regionali</label><br>
@@ -73,7 +74,6 @@
     </body>
     <script>
         var mymap = L.map('mapdiv');
-        document.getElementById('answer').value = '';
         provinces = [];
         mymap.setView([41, 14], 6);
         var province = new L.GeoJSON.AJAX('data/provinceSemplificato.geojson', {
@@ -117,17 +117,14 @@
         });
 
         $("#start").on("click", function(){
-            document.getElementById('answer').value = '';
-            document.getElementById('risposta_corretta').innerHTML = 'La tua risposta è...';
-            document.getElementById('answer').style.backgroundColor = "white";
-            document.getElementById("answer").focus();
+
             let idProvinciaInArray = Math.floor(Math.random()*107);
             let centroide = provinces[idProvinciaInArray][2];
             let idProvincia = provinces[idProvinciaInArray][0];
             let nomeProvincia = provinces[idProvinciaInArray][1];
 
-            mymap.setView(centroide, 8);
-
+            mymap.setView(centroide, 9);
+            console.log(centroide);
             function style(feature){
                 if (feature.properties.fid === idProvincia){
                     return {
@@ -144,23 +141,36 @@
                 };
 
             province.setStyle(style);
+            
+
+            var marker = L.circle(centroide, {
+                fillColor: 'black',
+                radius: 5
+                }).addTo(mymap); 
+            
+
+            marker.bindPopup("<div style='background-color: rgba(255, 255, 255, 0);'><input type='text' id='answerPopup'></div>").openPopup();
+            
+            document.getElementById('answerPopup').focus();
 
             $("#btnConfirm").on("click", function(){
-                let answer = document.getElementById('answer').value;
+                let answer = document.getElementById('answerPopup').value;
                 if (answer.toLowerCase() === nomeProvincia.toLowerCase()){
-                    document.getElementById('answer').style.backgroundColor = "lightgreen";
-                    document.getElementById('risposta_corretta').innerHTML = 'Risposta corretta!';
+                    document.getElementById('answerPopup').style.backgroundColor = "lightgreen";
+                    document.getElementById('rispostaCorretta').innerHTML = 'Risposta corretta!';
+                    mymap.removeLayer(marker);
                 } else {
-                    document.getElementById('answer').style.backgroundColor = "red";
-                    document.getElementById('risposta_corretta').innerHTML = 'Risposta errata! La risposta corretta è ' + nomeProvincia;
+                    document.getElementById('answerPopup').style.backgroundColor = "red";
+                    document.getElementById('rispostaCorretta').innerHTML = 'Risposta sbagliata! ' + nomeProvincia;
+                    mymap.removeLayer(marker);
                 }
             });
 
-            $("#answer").on('keydown', function(){
+
+            $("#answerPopup").on('keydown', function(){
                 if (event.key === 'Enter') {
                     event.preventDefault;
                     document.getElementById('btnConfirm').click();
-                    document.getElementById('answer').blur();
                 }
             })
         })
